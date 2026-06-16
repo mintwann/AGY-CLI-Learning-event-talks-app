@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>BigQuery Release Insights</title>
+    <meta name="description" content="A premium dashboard for browsing, filtering, and sharing BigQuery release notes and updates.">
+    <!-- Google Fonts: Inter & Outfit -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <!-- FontAwesome for Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Custom Stylesheet -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar Dashboard Stats -->
+        <aside class="sidebar">
+            <div class="brand">
+                <div class="logo-wrapper">
+                    <i class="fa-solid fa-database logo-icon"></i>
+                    <div class="logo-pulse"></div>
+                </div>
+                <h2>BQ Insights</h2>
+            </div>
+            
+            <div class="stats-section">
+                <h3>OVERVIEW</h3>
+                <div class="stat-card">
+                    <div class="stat-icon val-all"><i class="fa-solid fa-list"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-num" id="stat-total">0</span>
+                        <span class="stat-label">Total Items</span>
+                    </div>
+                </div>
+                
+                <div class="stat-card">
+                    <div class="stat-icon val-feature"><i class="fa-solid fa-circle-plus"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-num" id="stat-features">0</span>
+                        <span class="stat-label">Features</span>
+                    </div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-icon val-breaking"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="stat-info">
+                        <span class="stat-num" id="stat-breaking">0</span>
+                        <span class="stat-label">Breaking / Issues</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="selection-drawer" id="tweet-drawer">
+                <h3><i class="fa-brands fa-x-twitter"></i> TWEET COMPOSER</h3>
+                <p class="drawer-desc">Compose and share updates directly to your feed. Customize your text below.</p>
+                
+                <div class="composer-card">
+                    <label for="tweet-text">Tweet Content</label>
+                    <textarea id="tweet-text" rows="8" placeholder="Select an update or type here to compose your tweet..."></textarea>
+                    
+                    <div class="char-counter">
+                        <span id="char-count">0</span>/280
+                    </div>
+
+                    <div class="hashtag-selector">
+                        <span class="tag-pill hash-pill active" data-hashtag="#BigQuery">#BigQuery</span>
+                        <span class="tag-pill hash-pill active" data-hashtag="#GoogleCloud">#GoogleCloud</span>
+                        <span class="tag-pill hash-pill" data-hashtag="#GCP">#GCP</span>
+                        <span class="tag-pill hash-pill" data-hashtag="#DataEng">#DataEng</span>
+                    </div>
+
+                    <button class="btn btn-primary btn-tweet-submit" id="btn-send-tweet">
+                        <i class="fa-brands fa-x-twitter"></i> Tweet Now
+                    </button>
+                </div>
+                <div class="drawer-footer">
+                    <span id="composer-status">No update selected</span>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content Area -->
+        <main class="main-content">
+            <!-- Top Header & Controls -->
+            <header class="main-header">
+                <div class="header-title">
+                    <h1>BigQuery Release Notes</h1>
+                    <p class="subtitle">Track official Google Cloud BigQuery releases, filter types, and share updates.</p>
+                </div>
+                
+                <div class="header-actions">
+                    <div class="cache-status" id="cache-status-container">
+                        <span class="pulse-indicator status-fetching" id="cache-indicator"></span>
+                        <span id="cache-status-text">Checking for updates...</span>
+                    </div>
+                    
+                    <button class="btn btn-secondary" id="btn-refresh" title="Force refresh feed details">
+                        <i class="fa-solid fa-arrows-rotate spinner-icon" id="refresh-icon"></i> Refresh Feed
+                    </button>
+                </div>
+            </header>
+
+            <!-- Filters Bar -->
+            <section class="filters-bar">
+                <div class="search-box">
+                    <i class="fa-solid fa-magnifying-glass search-icon"></i>
+                    <input type="text" id="search-input" placeholder="Search releases (e.g., Gemini, UDFs, Graph)...">
+                    <button class="clear-search-btn" id="btn-clear-search" style="display: none;">
+                        <i class="fa-solid fa-xmark"></i>
+                    </button>
+                </div>
+
+                <div class="category-filters">
+                    <span class="filter-pill active" data-category="All">All</span>
+                    <span class="filter-pill" data-category="Feature">Features</span>
+                    <span class="filter-pill" data-category="Issue">Issues</span>
+                    <span class="filter-pill" data-category="Breaking">Breaking</span>
+                    <span class="filter-pill" data-category="Announcement">Announcements</span>
+                    <span class="filter-pill" data-category="Change">Changes</span>
+                </div>
+            </section>
+
+            <!-- Feed Feed Content -->
+            <section class="feed-section">
+                <!-- Loading State -->
+                <div class="loader-container" id="feed-loader">
+                    <div class="spinner"></div>
+                    <p>Fetching releases...</p>
+                </div>
+
+                <!-- Error State -->
+                <div class="error-container" id="feed-error" style="display: none;">
+                    <i class="fa-solid fa-triangle-exclamation error-icon"></i>
+                    <h3>Failed to load release notes</h3>
+                    <p id="error-message">Unknown error occurred.</p>
+                    <button class="btn btn-primary" id="btn-retry">Retry Fetching</button>
+                </div>
+
+                <!-- Empty State -->
+                <div class="empty-container" id="feed-empty" style="display: none;">
+                    <i class="fa-solid fa-folder-open empty-icon"></i>
+                    <h3>No matching updates found</h3>
+                    <p>Try adjusting your search terms or filters.</p>
+                </div>
+
+                <!-- Releases Timeline container -->
+                <div class="timeline" id="timeline-container">
+                    <!-- Dynamic updates injected here -->
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Quick Notification Toast -->
+    <div class="toast" id="toast-notification">
+        <i class="fa-solid fa-info-circle toast-icon"></i>
+        <span id="toast-text">Notification message</span>
+    </div>
+
+    <!-- Custom JavaScript -->
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+</body>
+</html>

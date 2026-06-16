@@ -1,0 +1,30 @@
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# Python compiled bytecode
+**/__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Local feed cache files
+releases_cache.json
+
+# IDE / Editor configuration
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
+
+# Environment variables
+.env
+.flaskenv
+
+# Log files
+*.log
